@@ -9,6 +9,11 @@
 
 namespace iOS {
 namespace AIFeatures {
+
+// Forward declarations for AIRequest and AIResponse structures
+struct AIRequest;
+struct AIResponse;
+
 namespace LocalModels {
 
 /**
@@ -130,6 +135,20 @@ public:
      * @return Assistant response
      */
     std::string ProcessInputWithContext(const std::string& input, const std::string& systemContext, const std::string& userId = "");
+    
+    /**
+     * @brief Process a query using the AI model
+     * @param request The AI request containing query and context information
+     * @return AI response with generated content and metadata
+     */
+    ::iOS::AIFeatures::AIResponse ProcessQuery(const ::iOS::AIFeatures::AIRequest& request);
+    
+    /**
+     * @brief Process a query asynchronously using the AI model
+     * @param request The AI request containing query and context information
+     * @param callback Callback function to receive the response
+     */
+    void ProcessQuery(const ::iOS::AIFeatures::AIRequest& request, std::function<void(const ::iOS::AIFeatures::AIResponse&)> callback);
     
     /**
      * @brief Set current user

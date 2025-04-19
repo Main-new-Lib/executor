@@ -1,4 +1,3 @@
-
 #include "../../ios_compat.h"
 #include "AIIntegration.h"
 #include "AIConfig.h"
@@ -424,6 +423,24 @@ public:
             if (callback) {
                 callback("AI system not initialized");
             }
+            return;
+        }
+        
+        // Get GeneralAssistantModel from AISystemInitializer
+        auto initializer = AISystemInitializer::GetInstance();
+        auto generalAssistant = initializer->GetGeneralAssistantModel();
+        
+        if (generalAssistant && generalAssistant->IsInitialized()) {
+            // Use the model's sophisticated processing
+            AIRequest request(query, "", "general");
+            
+            generalAssistant->ProcessQuery(request, [callback](const AIResponse& response) {
+                if (response.m_success) {
+                    callback(response.m_content);
+                } else {
+                    callback("Error: " + response.m_errorMessage);
+                }
+            });
             return;
         }
         

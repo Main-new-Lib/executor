@@ -1,4 +1,3 @@
-
 #include "../../ios_compat.h"
 #include "OfflineAISystem.h"
 #include "local_models/LocalModelBase.h"
@@ -224,23 +223,151 @@ void OfflineAISystem::DebugScript(const std::string& script,
 }
 
 // Process a general query
-void OfflineAISystem::ProcessQuery(const std::string& query, 
-                             std::function<void(const std::string&)> callback) {
-    if (!callback) {
-        return;
+OfflineAISystem::AIResponse OfflineAISystem::ProcessGeneralQuery(const AIRequest& request) {
+    AIResponse response;
+    
+    try {
+        // Get GeneralAssistantModel from AISystemInitializer
+        auto initializer = AISystemInitializer::GetInstance();
+        auto generalAssistant = initializer->GetGeneralAssistantModel();
+        
+        if (generalAssistant && generalAssistant->IsInitialized()) {
+            // Use the model's sophisticated processing
+            response = generalAssistant->ProcessQuery(request);
+        } else {
+            // Fall back to rule-based processing if model is not available
+            std::string query = request.m_query;
+            std::transform(query.begin(), query.end(), query.begin(), 
+                          [](unsigned char c) { return std::tolower(c); });
+            
+            std::stringstream output;
+            
+            // Handle script generation requests
+            if (query.find("generat") != std::string::npos && 
+                (query.find("script") != std::string::npos || query.find("code") != std::string::npos)) {
+                
+                output << "To generate a script, please provide a description of what you want the script to do.\n\n";
+                output << "For example:\n";
+                output << "- Generate a script for ESP\n";
+                output << "- Create a speed hack script\n";
+                output << "- Make an aimbot script\n";
+                
+                response.m_success = true;
+                response.m_content = output.str();
+                
+                response.m_suggestions.push_back("Generate ESP script");
+                response.m_suggestions.push_back("Generate speed hack");
+                response.m_suggestions.push_back("Generate aimbot");
+                
+                return response;
+            }
+            
+            // Handle debug requests
+            if (query.find("debug") != std::string::npos || 
+                query.find("fix") != std::string::npos || 
+                query.find("error") != std::string::npos) {
+                
+                output << "To debug a script, please provide the script code along with your question.\n\n";
+                output << "For example:\n";
+                output << "- Debug this script: [paste your script here]\n";
+                output << "- Fix errors in: [paste your script here]\n";
+                
+                response.m_success = true;
+                response.m_content = output.str();
+                
+                return response;
+            }
+            
+            // Handle help requests
+            if (query.find("help") != std::string::npos || 
+                query.find("how to") != std::string::npos || 
+                query.find("explain") != std::string::npos) {
+                
+                output << "I'm here to help you with Lua scripting for Roblox games. Here are some things I can do:\n\n";
+                output << "- Generate scripts based on your description\n";
+                output << "- Debug existing scripts\n";
+                output << "- Explain how to achieve specific effects or behaviors\n";
+                output << "- Answer questions about Lua programming\n";
+                output << "- Provide tips and best practices\n\n";
+                
+                output << "What would you like help with today?";
+                
+                response.m_success = true;
+                response.m_content = output.str();
+                
+                response.m_suggestions.push_back("Generate a script");
+                response.m_suggestions.push_back("Debug a script");
+                response.m_suggestions.push_back("Explain Lua functions");
+                
+                return response;
+            }
+            
+            // Handle script execution questions
+            if (query.find("execute") != std::string::npos || 
+                query.find("run") != std::string::npos) {
+                
+                output << "To execute a script, you can:\n\n";
+                output << "1. Press the Execute button in the script editor\n";
+                output << "2. Use the context menu on a saved script and select Execute\n";
+                output << "3. Create a hotkey for quick execution\n\n";
+                
+                output << "Would you like to execute a specific script?";
+                
+                response.m_success = true;
+                response.m_content = output.str();
+                
+                return response;
+            }
+            
+            // Handle vulnerability scan requests
+            if (query.find("vulnerabilit") != std::string::npos || 
+                query.find("scan") != std::string::npos || 
+                query.find("exploit") != std::string::npos || 
+                query.find("backdoor") != std::string::npos) {
+                
+                output << "I can scan for vulnerabilities in Roblox games. To start a scan:\n\n";
+                output << "1. Join the game you want to scan\n";
+                output << "2. Click on 'Scan for Vulnerabilities' in the tools menu\n";
+                output << "3. Wait for the scan to complete\n\n";
+                
+                output << "Would you like me to scan the current game for vulnerabilities?";
+                
+                response.m_success = true;
+                response.m_content = output.str();
+                
+                response.m_suggestions.push_back("Scan current game");
+                response.m_suggestions.push_back("View vulnerability types");
+                response.m_suggestions.push_back("How to exploit vulnerabilities");
+                
+                return response;
+            }
+            
+            // Default response for other queries
+            output << "I'm not sure how to respond to that question. Here are some things I can help with:\n\n";
+            output << "- Generate scripts for various purposes\n";
+            output << "- Debug existing scripts\n";
+            output << "- Explain Lua programming concepts\n";
+            output << "- Scan games for vulnerabilities\n";
+            output << "- Provide help and tutorials\n\n";
+            
+            output << "Could you rephrase your question or select one of these topics?";
+            
+            response.m_success = true;
+            response.m_content = output.str();
+            
+            response.m_suggestions.push_back("Generate a script");
+            response.m_suggestions.push_back("Debug a script");
+            response.m_suggestions.push_back("Scan for vulnerabilities");
+            
+            return response;
+        }
+    } catch (const std::exception& e) {
+        response.m_success = false;
+        response.m_errorMessage = "Error in ProcessGeneralQuery: " + std::string(e.what());
+        std::cerr << response.m_errorMessage << std::endl;
     }
     
-    // Create request
-    AIRequest request(query, "", "general");
-    
-    // Process request
-    ProcessRequest(request, [callback](const AIResponse& response) {
-        if (response.m_success) {
-            callback(response.m_content);
-        } else {
-            callback("Error: " + response.m_errorMessage);
-        }
-    });
+    return response;
 }
 
 // Handle memory warning
@@ -471,136 +598,147 @@ OfflineAISystem::AIResponse OfflineAISystem::ProcessGeneralQuery(const AIRequest
     AIResponse response;
     
     try {
-        // For general queries, we'll use a rule-based approach
-        std::string query = request.m_query;
-        std::transform(query.begin(), query.end(), query.begin(), 
-                      [](unsigned char c) { return std::tolower(c); });
+        // Get GeneralAssistantModel from AISystemInitializer
+        auto initializer = AISystemInitializer::GetInstance();
+        auto generalAssistant = initializer->GetGeneralAssistantModel();
         
-        std::stringstream output;
-        
-        // Handle script generation requests
-        if (query.find("generat") != std::string::npos && 
-            (query.find("script") != std::string::npos || query.find("code") != std::string::npos)) {
+        if (generalAssistant && generalAssistant->IsInitialized()) {
+            // Use the model's sophisticated processing
+            response = generalAssistant->ProcessQuery(request);
+        } else {
+            // Fall back to rule-based processing if model is not available
+            std::string query = request.m_query;
+            std::transform(query.begin(), query.end(), query.begin(), 
+                          [](unsigned char c) { return std::tolower(c); });
             
-            output << "To generate a script, please provide a description of what you want the script to do.\n\n";
-            output << "For example:\n";
-            output << "- Generate a script for ESP\n";
-            output << "- Create a speed hack script\n";
-            output << "- Make an aimbot script\n";
+            std::stringstream output;
             
-            response.m_success = true;
-            response.m_content = output.str();
+            // Handle script generation requests
+            if (query.find("generat") != std::string::npos && 
+                (query.find("script") != std::string::npos || query.find("code") != std::string::npos)) {
+                
+                output << "To generate a script, please provide a description of what you want the script to do.\n\n";
+                output << "For example:\n";
+                output << "- Generate a script for ESP\n";
+                output << "- Create a speed hack script\n";
+                output << "- Make an aimbot script\n";
+                
+                response.m_success = true;
+                response.m_content = output.str();
+                
+                response.m_suggestions.push_back("Generate ESP script");
+                response.m_suggestions.push_back("Generate speed hack");
+                response.m_suggestions.push_back("Generate aimbot");
+                
+                return response;
+            }
             
-            response.m_suggestions.push_back("Generate ESP script");
-            response.m_suggestions.push_back("Generate speed hack");
-            response.m_suggestions.push_back("Generate aimbot");
+            // Handle debug requests
+            if (query.find("debug") != std::string::npos || 
+                query.find("fix") != std::string::npos || 
+                query.find("error") != std::string::npos) {
+                
+                output << "To debug a script, please provide the script code along with your question.\n\n";
+                output << "For example:\n";
+                output << "- Debug this script: [paste your script here]\n";
+                output << "- Fix errors in: [paste your script here]\n";
+                
+                response.m_success = true;
+                response.m_content = output.str();
+                
+                return response;
+            }
             
-            return response;
-        }
-        
-        // Handle debug requests
-        if (query.find("debug") != std::string::npos || 
-            query.find("fix") != std::string::npos || 
-            query.find("error") != std::string::npos) {
+            // Handle help requests
+            if (query.find("help") != std::string::npos || 
+                query.find("how to") != std::string::npos || 
+                query.find("explain") != std::string::npos) {
+                
+                output << "I'm here to help you with Lua scripting for Roblox games. Here are some things I can do:\n\n";
+                output << "- Generate scripts based on your description\n";
+                output << "- Debug existing scripts\n";
+                output << "- Explain how to achieve specific effects or behaviors\n";
+                output << "- Answer questions about Lua programming\n";
+                output << "- Provide tips and best practices\n\n";
+                
+                output << "What would you like help with today?";
+                
+                response.m_success = true;
+                response.m_content = output.str();
+                
+                response.m_suggestions.push_back("Generate a script");
+                response.m_suggestions.push_back("Debug a script");
+                response.m_suggestions.push_back("Explain Lua functions");
+                
+                return response;
+            }
             
-            output << "To debug a script, please provide the script code along with your question.\n\n";
-            output << "For example:\n";
-            output << "- Debug this script: [paste your script here]\n";
-            output << "- Fix errors in: [paste your script here]\n";
+            // Handle script execution questions
+            if (query.find("execute") != std::string::npos || 
+                query.find("run") != std::string::npos) {
+                
+                output << "To execute a script, you can:\n\n";
+                output << "1. Press the Execute button in the script editor\n";
+                output << "2. Use the context menu on a saved script and select Execute\n";
+                output << "3. Create a hotkey for quick execution\n\n";
+                
+                output << "Would you like to execute a specific script?";
+                
+                response.m_success = true;
+                response.m_content = output.str();
+                
+                return response;
+            }
             
-            response.m_success = true;
-            response.m_content = output.str();
+            // Handle vulnerability scan requests
+            if (query.find("vulnerabilit") != std::string::npos || 
+                query.find("scan") != std::string::npos || 
+                query.find("exploit") != std::string::npos || 
+                query.find("backdoor") != std::string::npos) {
+                
+                output << "I can scan for vulnerabilities in Roblox games. To start a scan:\n\n";
+                output << "1. Join the game you want to scan\n";
+                output << "2. Click on 'Scan for Vulnerabilities' in the tools menu\n";
+                output << "3. Wait for the scan to complete\n\n";
+                
+                output << "Would you like me to scan the current game for vulnerabilities?";
+                
+                response.m_success = true;
+                response.m_content = output.str();
+                
+                response.m_suggestions.push_back("Scan current game");
+                response.m_suggestions.push_back("View vulnerability types");
+                response.m_suggestions.push_back("How to exploit vulnerabilities");
+                
+                return response;
+            }
             
-            return response;
-        }
-        
-        // Handle help requests
-        if (query.find("help") != std::string::npos || 
-            query.find("how to") != std::string::npos || 
-            query.find("explain") != std::string::npos) {
+            // Default response for other queries
+            output << "I'm not sure how to respond to that question. Here are some things I can help with:\n\n";
+            output << "- Generate scripts for various purposes\n";
+            output << "- Debug existing scripts\n";
+            output << "- Explain Lua programming concepts\n";
+            output << "- Scan games for vulnerabilities\n";
+            output << "- Provide help and tutorials\n\n";
             
-            output << "I'm here to help you with Lua scripting for Roblox games. Here are some things I can do:\n\n";
-            output << "- Generate scripts based on your description\n";
-            output << "- Debug scripts and find errors\n";
-            output << "- Explain how to achieve specific effects or behaviors\n";
-            output << "- Answer questions about Lua programming\n";
-            output << "- Provide tips and best practices\n\n";
-            
-            output << "What would you like help with today?";
+            output << "Could you rephrase your question or select one of these topics?";
             
             response.m_success = true;
             response.m_content = output.str();
             
             response.m_suggestions.push_back("Generate a script");
             response.m_suggestions.push_back("Debug a script");
-            response.m_suggestions.push_back("Explain Lua functions");
+            response.m_suggestions.push_back("Scan for vulnerabilities");
             
             return response;
         }
-        
-        // Handle script execution questions
-        if (query.find("execute") != std::string::npos || 
-            query.find("run") != std::string::npos) {
-            
-            output << "To execute a script, you can:\n\n";
-            output << "1. Press the Execute button in the script editor\n";
-            output << "2. Use the context menu on a saved script and select Execute\n";
-            output << "3. Create a hotkey for quick execution\n\n";
-            
-            output << "Would you like to execute a specific script?";
-            
-            response.m_success = true;
-            response.m_content = output.str();
-            
-            return response;
-        }
-        
-        // Handle vulnerability scan requests
-        if (query.find("vulnerabilit") != std::string::npos || 
-            query.find("scan") != std::string::npos || 
-            query.find("exploit") != std::string::npos || 
-            query.find("backdoor") != std::string::npos) {
-            
-            output << "I can scan for vulnerabilities in Roblox games. To start a scan:\n\n";
-            output << "1. Join the game you want to scan\n";
-            output << "2. Click on 'Scan for Vulnerabilities' in the tools menu\n";
-            output << "3. Wait for the scan to complete\n\n";
-            
-            output << "Would you like me to scan the current game for vulnerabilities?";
-            
-            response.m_success = true;
-            response.m_content = output.str();
-            
-            response.m_suggestions.push_back("Scan current game");
-            response.m_suggestions.push_back("View vulnerability types");
-            response.m_suggestions.push_back("How to exploit vulnerabilities");
-            
-            return response;
-        }
-        
-        // Default response for other queries
-        output << "I'm not sure how to respond to that question. Here are some things I can help with:\n\n";
-        output << "- Generate scripts for various purposes\n";
-        output << "- Debug existing scripts\n";
-        output << "- Explain Lua programming concepts\n";
-        output << "- Scan games for vulnerabilities\n";
-        output << "- Provide help and tutorials\n\n";
-        
-        output << "Could you rephrase your question or select one of these topics?";
-        
-        response.m_success = true;
-        response.m_content = output.str();
-        
-        response.m_suggestions.push_back("Generate a script");
-        response.m_suggestions.push_back("Debug a script");
-        response.m_suggestions.push_back("Scan for vulnerabilities");
-        
-        return response;
     } catch (const std::exception& e) {
         response.m_success = false;
-        response.m_errorMessage = "Error processing query: " + std::string(e.what());
-        return response;
+        response.m_errorMessage = "Error in ProcessGeneralQuery: " + std::string(e.what());
+        std::cerr << response.m_errorMessage << std::endl;
     }
+    
+    return response;
 }
 
 // Load model
