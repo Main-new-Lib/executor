@@ -73,6 +73,7 @@ private:
     void* m_reachability;             // Opaque pointer to reachability object
     bool m_enableEncryption;          // Whether to encrypt communication
     std::string m_encryptionKey;      // Encryption key
+    bool m_bypassCertificateValidation; // Whether to bypass certificate validation
     
     // Private methods
     void MonitorNetworkStatus();
@@ -197,7 +198,10 @@ public:
     void SetEncryption(bool enable, const std::string& key = "");
     
     /**
+     * @brief Enable or disable certificate validation bypass
+     * @param bypass Whether to bypass certificate validation
      */
+    void SetBypassCertificateValidation(bool bypass);
     
     /**
      * @brief Clear response cache
